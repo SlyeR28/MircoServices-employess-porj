@@ -1,0 +1,101 @@
+server:
+  port: ${PORT:9000}
+
+spring:
+  application:
+    name: Api-Gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/v1/auth/**
+              filters:
+               - name: CircuitBreaker
+                 args:
+                  name: auth-serviceCB
+                  fallbackUri: forward:/fallback/authService
+
+            - id: employee-service
+              uri: lb://employee-service
+              predicates:
+                - Path=/api/v1/employee/**
+              filters:
+                - AuthFilter
+                - name: CircuitBreaker
+                  args:
+                   name: employee-serviceCB
+                   fallbackUri: forward:/fallback/employee
+
+            - id: address-service
+              uri: lb://address-service
+              predicates:
+                - Path=/api/v1/addresses/**
+              filters:
+                - AuthFilter
+                - name: CircuitBreaker
+                  args:
+                   name: address-serviceCB
+                   fallbackUri: forward:/fallback/address
+
+
+# discovery client configuration
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+#Resilience Configuration
+resilience4j.circuitbreaker:
+    configs:
+      default:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 6
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 5s
+        maxWaitDurationInHalfOpenState: 4s
+        registerHealthIndicator: true
+    instances:
+      auth-serviceCB:
+        baseConfig: default
+      address-serviceCB:
+        baseConfig: default
+      employee-serviceCB:
+        baseConfig: default
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    gateway:
+      enabled: true
+  metrics:
+    tags:
+      application: Api-Gateway
+info:
+  app:
+    name: Api-Gateway
+    description: this is Api-Gateway
+    version: 0.0.1-SNAPSHOT
+
+
+
+# Jwt Util Configuration
+jwt:
+  secretKey: ${JWT_SECRET_KEY:VGhpc0lzQVN1ZmZpY2llbnRseUxvbmdTZWNyZXRrZXlGb3JBdXRoU2VydmljZQ==}
+  expiration: ${JWT_EXPIRATION:86400000}

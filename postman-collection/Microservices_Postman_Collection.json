@@ -1,0 +1,1464 @@
+{
+  "info": {
+    "_postman_id": "b9e24391-8d2b-4c02-994e-6e28a901f222",
+    "name": "API Gateway - Microservices Complete Test Collection",
+    "description": "Postman Collection for testing all Microservices (Auth-Service, Employee-Service, Address-Service) routed directly through the API Gateway at http://localhost:9000. Includes POST, GET, PUT, DELETE requests, positive & negative validation scenarios, and automatic JWT token handling.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "gatewayUrl",
+      "value": "http://localhost:9000",
+      "type": "string",
+      "description": "Base URL of the API Gateway"
+    },
+    {
+      "key": "jwtToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT Bearer Token automatically saved after calling Login endpoint"
+    },
+    {
+      "key": "employeeId",
+      "value": "1",
+      "type": "string",
+      "description": "Employee ID saved after creating an employee"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth-Service (via API Gateway)",
+      "description": "Authentication endpoints routed via API Gateway at {{gatewayUrl}}/api/v1/auth/**",
+      "item": [
+        {
+          "name": "POST - Register User (Success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('User registration successful', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.username).to.eql('johndoe');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"username\": \"johndoe\",\n  \"password\": \"Password123!\",\n  \"role\": \"ROLE_USER\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/register",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "POST request to register a new user through API Gateway."
+          }
+        },
+        {
+          "name": "POST - Register Admin User (Success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Admin role assigned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.role).to.eql('ROLE_ADMIN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"email\": \"admin@example.com\",\n  \"username\": \"adminuser\",\n  \"password\": \"AdminPassword123!\",\n  \"role\": \"ROLE_ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/register",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "POST request to register an admin user through API Gateway."
+          }
+        },
+        {
+          "name": "POST - Register User (Validation Error - Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"invalid-email-format\",\n  \"username\": \"ab\",\n  \"password\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/register",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "POST request with invalid body testing validation errors through API Gateway."
+          }
+        },
+        {
+          "name": "POST - Login User (Auto-captures JWT Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('JWT Token present in response', function () {",
+                  "    pm.expect(jsonData.data).to.have.property('token');",
+                  "});",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('jwtToken', jsonData.data.token);",
+                  "    console.log('Saved JWT Token: ' + jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/login",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "POST request to authenticate user and automatically save JWT into collection variable."
+          }
+        },
+        {
+          "name": "POST - Login User (Invalid Password - Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 or 401', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 401]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"WrongPassword!\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/login",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "POST request testing login rejection for wrong password."
+          }
+        },
+        {
+          "name": "POST - Validate Token (Via Authorization Header)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/validate",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "validate"
+              ]
+            },
+            "description": "POST request to validate JWT token passed in Authorization header."
+          }
+        },
+        {
+          "name": "POST - Validate Token (Via Query Parameter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/validate?token={{jwtToken}}",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "validate"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}"
+                }
+              ]
+            },
+            "description": "POST request to validate JWT token passed as query parameter."
+          }
+        },
+        {
+          "name": "POST - Validate Token (Malformed Token - Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns valid: false or 401', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 401]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer malformed_invalid_token_string"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/validate",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "validate"
+              ]
+            },
+            "description": "POST request testing malformed token validation."
+          }
+        },
+        {
+          "name": "GET - Current User Profile (/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns logged-in user profile', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.email).to.eql('john.doe@example.com');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/me",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "GET request fetching user profile details using Bearer Token through Gateway."
+          }
+        },
+        {
+          "name": "GET - Current User Profile (No Token - Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/auth/me",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "GET request verifying Gateway blocks access without Bearer Token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Employee-Service (via API Gateway)",
+      "description": "Employee management endpoints routed via API Gateway at {{gatewayUrl}}/api/v1/employee/**",
+      "item": [
+        {
+          "name": "POST - Create Employee (Success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set('employeeId', jsonData.id.toString());",
+                  "    console.log('Saved Employee ID: ' + jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empName\": \"Rishabh Sharma\",\n  \"empEmail\": \"rishabh.sharma@example.com\",\n  \"empCode\": \"EMP1001\",\n  \"companyName\": \"TechCorp Solutions\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/create",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "create"
+              ]
+            },
+            "description": "POST request to create an employee record through API Gateway."
+          }
+        },
+        {
+          "name": "POST - Create Employee (Validation Error - Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empName\": \"\",\n  \"empEmail\": \"invalid-email\",\n  \"empCode\": \"\",\n  \"companyName\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/create",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "create"
+              ]
+            },
+            "description": "POST request with blank required fields testing DTO validation."
+          }
+        },
+        {
+          "name": "POST - Create Employee (Missing JWT - Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empName\": \"Unauthorized User\",\n  \"empEmail\": \"unauth@example.com\",\n  \"empCode\": \"EMP999\",\n  \"companyName\": \"NoAuth Co\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/create",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "create"
+              ]
+            },
+            "description": "POST request verifying Gateway blocks unauthorized creation requests."
+          }
+        },
+        {
+          "name": "GET - Employee By ID (With Feign Address Details)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Employee details returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('empName');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/{{employeeId}}",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "{{employeeId}}"
+              ]
+            },
+            "description": "GET request to fetch employee profile and inter-service address details via Feign."
+          }
+        },
+        {
+          "name": "GET - Employee By ID (Not Found - Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/99999",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "99999"
+              ]
+            },
+            "description": "GET request for non-existent employee ID."
+          }
+        },
+        {
+          "name": "GET - All Employees (Default Pagination & Sorting)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Paginated result returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('content');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/?page=0&size=10&sortBy=empName&direction=asc",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "empName"
+                },
+                {
+                  "key": "direction",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "GET request listing employees with page=0, size=10, sorted by empName asc."
+          }
+        },
+        {
+          "name": "GET - All Employees (Custom Pagination - Page 0 Size 5 Desc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/?page=0&size=5&sortBy=empEmail&direction=desc",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "5"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "empEmail"
+                },
+                {
+                  "key": "direction",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "GET request listing employees with custom pagination parameters."
+          }
+        },
+        {
+          "name": "PUT - Update Employee By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Employee details updated', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.empName).to.eql('Rishabh Sharma Updated');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empName\": \"Rishabh Sharma Updated\",\n  \"empEmail\": \"rishabh.updated@example.com\",\n  \"empCode\": \"EMP1001\",\n  \"companyName\": \"TechCorp Global\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/update/{{employeeId}}",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "update",
+                "{{employeeId}}"
+              ]
+            },
+            "description": "PUT request updating employee details through Gateway."
+          }
+        },
+        {
+          "name": "PUT - Update Non-Existent Employee (Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empName\": \"Ghost Employee\",\n  \"empEmail\": \"ghost@example.com\",\n  \"empCode\": \"EMP0000\",\n  \"companyName\": \"Ghost Inc\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/update/99999",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "update",
+                "99999"
+              ]
+            },
+            "description": "PUT request testing 404 when updating non-existent employee."
+          }
+        },
+        {
+          "name": "DELETE - Delete Employee By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/employee/{{employeeId}}",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "employee",
+                "{{employeeId}}"
+              ]
+            },
+            "description": "DELETE request removing employee record."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Address-Service (via API Gateway)",
+      "description": "Address management endpoints routed via API Gateway at {{gatewayUrl}}/api/v1/addresses/**",
+      "item": [
+        {
+          "name": "POST - Save Addresses for Employee (HOME & OFFICE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Addresses saved successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.addresses.length).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empId\": 1,\n  \"addresses\": [\n    {\n      \"street\": \"123 Tech Park Road\",\n      \"pinCode\": 560100,\n      \"city\": \"Bangalore\",\n      \"country\": \"India\",\n      \"addressType\": \"HOME\"\n    },\n    {\n      \"street\": \"456 Innovation Tower\",\n      \"pinCode\": 560001,\n      \"city\": \"Bangalore\",\n      \"country\": \"India\",\n      \"addressType\": \"OFFICE\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses"
+              ]
+            },
+            "description": "POST request creating multiple address records (HOME & OFFICE) for employee ID 1."
+          }
+        },
+        {
+          "name": "POST - Save Addresses (Validation Error - Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empId\": 1,\n  \"addresses\": [\n    {\n      \"street\": \"\",\n      \"pinCode\": -100,\n      \"city\": \"\",\n      \"country\": \"\",\n      \"addressType\": null\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses"
+              ]
+            },
+            "description": "POST request with invalid negative pin code and empty street/city testing validation."
+          }
+        },
+        {
+          "name": "POST - Save Addresses (Missing JWT - Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empId\": 1,\n  \"addresses\": [\n    {\n      \"street\": \"Test Street\",\n      \"pinCode\": 110001,\n      \"city\": \"Delhi\",\n      \"country\": \"India\",\n      \"addressType\": \"TEMPORARY\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses"
+              ]
+            },
+            "description": "POST request verifying Gateway blocks unauthenticated address creation."
+          }
+        },
+        {
+          "name": "GET - All Addresses for Employee",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses/employee/1",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                "employee",
+                "1"
+              ]
+            },
+            "description": "GET request fetching all addresses for employee ID 1."
+          }
+        },
+        {
+          "name": "GET - Address By Type (HOME)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns HOME address', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.addressType).to.eql('HOME');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses/employee/1/type/HOME",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                "employee",
+                "1",
+                "type",
+                "HOME"
+              ]
+            },
+            "description": "GET request fetching specific HOME address."
+          }
+        },
+        {
+          "name": "GET - Address By Type (OFFICE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns OFFICE address', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.addressType).to.eql('OFFICE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses/employee/1/type/OFFICE",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                "employee",
+                "1",
+                "type",
+                "OFFICE"
+              ]
+            },
+            "description": "GET request fetching specific OFFICE address."
+          }
+        },
+        {
+          "name": "GET - Address By Invalid Type (Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses/employee/1/type/INVALID_TYPE",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                "employee",
+                "1",
+                "type",
+                "INVALID_TYPE"
+              ]
+            },
+            "description": "GET request testing invalid enum type parameter."
+          }
+        },
+        {
+          "name": "PUT - Update Address By Type (HOME)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Address updated', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.street).to.eql('789 Residency Road Updated');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"street\": \"789 Residency Road Updated\",\n  \"pinCode\": 560025,\n  \"city\": \"Bangalore\",\n  \"country\": \"India\",\n  \"addressType\": \"HOME\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses/employee/1/type/HOME",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                "employee",
+                "1",
+                "type",
+                "HOME"
+              ]
+            },
+            "description": "PUT request updating HOME address for employee ID 1."
+          }
+        },
+        {
+          "name": "DELETE - Delete Address By Type (OFFICE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 204 No Content', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses/employee/1/type/OFFICE",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                "employee",
+                "1",
+                "type",
+                "OFFICE"
+              ]
+            },
+            "description": "DELETE request deleting employee OFFICE address."
+          }
+        },
+        {
+          "name": "DELETE - Delete All Addresses for Employee",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 204 No Content', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/v1/addresses/employee/1",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                "employee",
+                "1"
+              ]
+            },
+            "description": "DELETE request removing all addresses for employee ID 1."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. API Gateway System Health & Discovery",
+      "description": "Actuator monitoring endpoints on API Gateway (port 9000) and Eureka Server (port 8761)",
+      "item": [
+        {
+          "name": "GET - API Gateway Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Gateway health is UP', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('UP');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayUrl}}/actuator/health",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            },
+            "description": "GET request checking Actuator health status of API Gateway."
+          }
+        },
+        {
+          "name": "GET - API Gateway Active Routes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayUrl}}/actuator/gateway/routes",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "gateway",
+                "routes"
+              ]
+            },
+            "description": "GET request fetching active route configurations on API Gateway."
+          }
+        },
+        {
+          "name": "GET - Eureka Server Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8761",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8761"
+            },
+            "description": "GET request opening Eureka Service Registry UI."
+          }
+        }
+      ]
+    }
+  ]
+}
